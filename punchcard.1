@@ -1,0 +1,126 @@
+.\" SPDX-License-Identifier: MIT
+.Dd April 5, 2026
+.Dt PUNCHCARD 1
+.Os
+.Sh NAME
+.Nm punchcard
+.Nd generates SVG files for use in diecutting machines, for punchcards for 12 or 24 stitch punch card knitting machines
+.Sh SYNOPSIS
+.Nm
+.Op Fl o Ar output_path
+.Op Fl d Ar recreate_directories
+.Op Cm --stitches Ar 12|24
+.Op Cm --layout Ar auto|motif|repeat
+.Op Cm --repeat-height Ar n
+.Op Cm --threshold Ar 0-255
+.Op Cm --invert
+.Op Cm --hole-ratio Ar 0-1
+.Op Cm --cell-size Ar n
+.Op Cm --margin Ar n
+.Ar input ...
+.Op Ar stitches
+.Op Ar layout
+.Op Ar repeat_height
+.Sh DESCRIPTION
+.Nm
+converts 1:1 image motifs (1 pixel = 1 stitch) into punch cards in cut-ready SVG files for use with electronic die cutters.
+It is designed for 12-stitch and 24-stitch punch card knitting machines.
+.Pp
+One or more input files may be provided.
+When positional shorthand is used, trailing values apply to all listed input files.
+.Pp
+Layout modes follow the same behavior described in the README and QuickStart guides:
+.Dq motif
+centers a motif,
+.Dq repeat
+tiles across card width, and
+.Dq auto
+chooses between them from width compatibility.
+.Pp
+Positional arguments are interpreted as:
+.Bl -tag -width Ds
+.It Ar input
+One or more input image paths. Supported types: PNG and PCX.
+.It Ar stitches
+Card width in stitches. Allowed values: 12 or 24. Default: 24.
+.It Ar layout
+Card composition mode: auto, motif, repeat. Default: auto.
+.It Ar repeat_height
+Vertical repeat count. Must be >= 1. Default: 1.
+.El
+.Sh OPTIONS
+.Bl -tag -width Ds
+.It Fl o Ar output_path
+Write generated file(s) into this directory.
+.It Fl d Ar recreate_directories
+Recreate input folder structure under destination root.
+.It Cm --stitches Ar 12|24
+Card width in stitches. Default is 24.
+.It Cm --layout Ar auto|motif|repeat
+Card layout mode. Default is auto.
+.It Cm --repeat-height Ar n
+Vertical repeat count. Must be >= 1. Default is 1.
+.It Cm --threshold Ar 0-255
+Pixels below threshold are treated as punch holes.
+Default is 255.
+.It Cm --invert
+Invert punch mapping (bright becomes punch).
+.It Cm --hole-ratio Ar 0-1
+Relative punch-hole diameter for SVG output.
+Default is 0.55.
+.It Cm --cell-size Ar n
+Cell size for simple SVG grid rendering.
+Default is 10.
+.It Cm --margin Ar n
+Outer margin for simple SVG grid rendering.
+Default is 12.
+.El
+.Sh EXAMPLES
+Generate a 24-stitch punch chard with a centered motif and 6 vertical repeats:
+.Bd -literal -offset indent
+punchcard design.png 24 motif 6
+.Ed
+.Pp
+Generate a 12-stitch punch card with a pattern that repeats across the width of the card and 4 vertical repeats:
+.Bd -literal -offset indent
+punchcard tile.png 12 repeat 4
+.Ed
+.Pp
+Use defaults (24 stitch punch chard, auto layout, 1 vertical repeat):
+.Bd -literal -offset indent
+punchcard design.pcx
+.Ed
+.Pp
+Batch process PCX/PNG files from stdin:
+.Bd -literal -offset indent
+find . -name "*.pcx" | punchcard 24 repeat 3
+.Ed
+.Pp
+Batch process with shell glob expansion:
+.Bd -literal -offset indent
+punchcard *.pcx 24 motif 2 -d /path/to/output/dir
+.Ed
+.Sh EXIT STATUS
+.Ex -std
+.Sh DIAGNOSTICS
+Common failures include unsupported input extension, invalid repeat height,
+and repeat layout width mismatch.
+.Pp
+Typical messages include:
+.Bl -bullet
+.It
+.Dq Unsupported file format
+.It
+.Dq Motif width is wider than card width
+.It
+.Dq Repeat source width must evenly divide card width
+.El
+.Sh FILES
+.Bl -tag -width Ds
+.It Pa *.punch.svg
+Generated SVG punchcard output.
+.El
+.Sh SEE ALSO
+.Xr python3 1
+.Sh AUTHORS
+.An Kevin Duncan
