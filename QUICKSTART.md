@@ -78,6 +78,24 @@ find . -name "*.pcx" | python3 punchcard-generator.py --stitches 24 --layout mot
 - `-d ./output` preserve subfolder structure in output folder
 - `--threshold 220` change punch sensitivity
 - `--invert` invert pixel-to-punch behavior
+- `--jacquard {none,doublebed,birdseye,tuck}` double bed jacquard mode
+
+## 6) Double bed jacquard
+
+For double bed jacquard knitting the punchcard rows are doubled — each design row becomes two punchcard rows (pattern row + backing row). Three backing styles are available:
+
+```bash
+# Solid/full-jacquard backing (all stitches punched on backing row)
+python3 punchcard-generator.py design.png 24 motif 6 --jacquard doublebed
+
+# Bird's eye backing (alternating checkerboard on backing row)
+python3 punchcard-generator.py design.png 24 motif 6 --jacquard birdseye
+
+# Tuck-stitch backing (inverse of pattern on backing row)
+python3 punchcard-generator.py design.png 24 motif 6 --jacquard tuck
+```
+
+> A 6-row design with `--jacquard doublebed` produces a 12-row card.
 
 ## Troubleshooting 🔧
 

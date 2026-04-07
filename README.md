@@ -17,6 +17,7 @@ This uttility generates SVG files, usable in most diecutting machines, for punch
 - 🧵 Supports 12-stitch and 24-stitch card widths
 - 🔁 Layout modes: `auto`, `motif`, and `repeat`
 - 📏 Vertical repeats for longer pattern runs
+- 🧶 Double bed jacquard modes: `doublebed`, `birdseye`, and `tuck`
 - 🧪 Batch processing from shell globs and stdin
 - ⚙️ Threshold and inversion controls for image-to-punch mapping
 
@@ -87,6 +88,7 @@ find . -name "*.pcx" | python3 punchcard-generator.py --stitches 24 --layout mot
 - `--stitches {12,24}` card width (default `24`)
 - `--layout {auto,motif,repeat}` layout mode (default `auto`)
 - `--repeat-height N` vertical repeats (default `1`)
+- `--jacquard {none,doublebed,birdseye,tuck}` double bed jacquard mode (default `none`)
 - `--threshold 0-255` image threshold (default `255`)
 - `--invert` invert punched and non-punched spaces on the card
 - `--hole-ratio 0-1` hole size ratio (default `0.55`)
@@ -96,6 +98,23 @@ find . -name "*.pcx" | python3 punchcard-generator.py --stitches 24 --layout mot
 - `motif`: centers a design within the card width
 - `repeat`: tiles design across width (design width must divide by card width)
 - `auto`: picks `motif` or `repeat` based on width compatibility
+
+## 🧶 Double Bed Jacquard
+
+Double bed jacquard uses both the main bed and the ribber to create a two-layer fabric. Each design row is split into two punchcard rows: the pattern row (colour selection) and a backing row. Use `--jacquard` to enable this mode:
+
+- `none` (default): standard 1:1 punchcard
+- `doublebed`: solid/full-jacquard backing — every stitch punched on the backing row
+- `birdseye`: bird's eye backing — alternating checkerboard pattern on the backing row
+- `tuck`: tuck-stitch backing — inverse of the pattern row on the backing row
+
+```bash
+python3 punchcard-generator.py design.png 24 motif 6 --jacquard doublebed
+python3 punchcard-generator.py design.png 24 motif 6 --jacquard birdseye
+python3 punchcard-generator.py design.png 24 motif 6 --jacquard tuck
+```
+
+> **Note:** Double bed jacquard doubles the number of rows on the card. A 6-row motif with `--jacquard doublebed` produces a 12-row card.
 
 ## 🤝 Contributing
 

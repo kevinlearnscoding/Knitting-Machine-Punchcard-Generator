@@ -184,6 +184,45 @@ def compose_card_rows(rows, card_stitches, card_layout, repeat_height):
     raise ValueError(f"Unsupported card layout '{layout}'")
 
 
+def build_double_bed_rows(rows, backing="doublebed"):
+    """Transform card rows for double bed jacquard knitting.
+
+    Each pattern row is doubled into two punchcard rows:
+      - Row 1 (odd pass):  the original pattern row (selects needles for colour A)
+      - Row 2 (even pass): a backing row whose style is chosen by ``backing``
+
+    Backing modes
+    -------------
+    doublebed : every stitch punched – solid / full-jacquard backing
+    birdseye  : alternating x-/checkerboard backing (bird's eye)
+    tuck      : inverse of the pattern row (tuck-stitch backing)
+    """
+    if not rows:
+        return rows
+
+    width = len(rows[0])
+    result = []
+
+    for i, row in enumerate(rows):
+        result.append(row)
+
+        if backing == "doublebed":
+            result.append("x" * width)
+        elif backing == "birdseye":
+            # Checkerboard: phase shifts by 1 each pair so the backing forms a
+            # diagonal bird's eye grid across the fabric.
+            offset = i % 2
+            backing_row = "".join("x" if (j + offset) % 2 == 0 else "-" for j in range(width))
+            result.append(backing_row)
+        elif backing == "tuck":
+            tuck_row = "".join("-" if ch == "x" else "x" for ch in row)
+            result.append(tuck_row)
+        else:
+            raise ValueError(f"Unsupported double bed backing mode: '{backing}'")
+
+    return result
+
+
 def write_brother_style_svg(
     path,
     rows,
@@ -326,6 +365,7 @@ def generate_punchcard(
     card_stitches=None,
     card_layout="auto",
     card_repeat_height=1,
+    jacquard="none",
 ):
     img = open_flattened_rgb_image(input_path)
     rows, width_cells, height_cells = build_punch_rows(img, threshold=threshold, invert=invert)
@@ -345,6 +385,9 @@ def generate_punchcard(
             repeat_height=card_repeat_height,
         )
         output_width = card_stitches
+
+    if jacquard != "none":
+        output_rows = build_double_bed_rows(output_rows, backing=jacquard)
 
     if punchcard_mode in ("text", "both"):
         txt_path = output_base + ".punch.txt"
@@ -373,7 +416,8 @@ def generate_punchcard(
         print(f"Created: {svg_path}")
 
     if layout_used is not None:
-        print(f"Card layout: {layout_used}, width: {card_stitches}, rows: {len(output_rows)}")
+        jacquard_info = f", jacquard: {jacquard}" if jacquard != "none" else ""
+        print(f"Card layout: {layout_used}, width: {card_stitches}, rows: {len(output_rows)}{jacquard_info}")
 
 
 def process_file(
@@ -389,6 +433,7 @@ def process_file(
     stitches=24,
     layout="auto",
     repeat_height=1,
+    jacquard="none",
 ):
     input_path = input_path.strip()
     if not input_path or not os.path.exists(input_path):
@@ -416,6 +461,7 @@ def process_file(
             card_stitches=stitches,
             card_layout=layout,
             card_repeat_height=repeat_height,
+            jacquard=jacquard,
         )
     except Exception as e:
         print(f"Error on {input_path}: {e}", file=sys.stderr)
@@ -482,6 +528,19 @@ if __name__ == "__main__":
         type=int,
         default=1,
         help="Number of vertical repeats for card pattern. Default: 1.",
+    )
+    parser.add_argument(
+        "--jacquard",
+        choices=["none", "doublebed", "birdseye", "tuck"],
+        default="none",
+        help=(
+            "Double bed jacquard mode. Each pattern row is doubled: the original row"
+            " followed by a backing row. "
+            "none: standard 1:1 card (default). "
+            "doublebed: full/solid backing (all stitches punched). "
+            "birdseye: alternating checkerboard backing (bird's eye). "
+            "tuck: inverse of the pattern row (tuck-stitch backing)."
+        ),
     )
     parser.add_argument("-help", action="help", help="Show this help message and exit.")
 
@@ -561,6 +620,7 @@ if __name__ == "__main__":
                 stitches=stitches,
                 layout=layout,
                 repeat_height=repeat_height,
+                jacquard=args.jacquard,
             )
 
     # 2. Process files passed via pipe (e.g., find . -name '*.pcx' | punchcard)
@@ -579,6 +639,7 @@ if __name__ == "__main__":
                 stitches=stitches,
                 layout=layout,
                 repeat_height=repeat_height,
+                jacquard=args.jacquard,
             )
 
     # 3. If no input was provided via either method, show the help
