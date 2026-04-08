@@ -80,8 +80,68 @@ find . -name "*.pcx" | python3 punchcard-generator.py --stitches 24 --layout mot
 - `--invert` invert pixel-to-punch behavior
 - `--chart-mode dbj` convert a normal chart to double-bed jacquard format
 - `--dbj-start-color foreground` set first knitted row color for DBJ
+- `--template` generate printable template pages (defaults to Letter)
+- `--template a4` generate printable template pages sized for A4
+- `--template-machine brother|silverreed` enable machine-specific shifted row numbering
 
-## 6) Double-bed jacquard (DBJ)
+## 6) Printable template output (manual punching)
+
+Letter template (default):
+
+```bash
+python3 punchcard-generator.py design.png --template
+```
+
+A4 template:
+
+```bash
+python3 punchcard-generator.py design.png --template a4
+```
+
+Template output is PDF-only (requires CairoSVG):
+
+```bash
+python3 punchcard-generator.py design.png --template
+```
+
+Template with row numbering for Brother:
+
+```bash
+python3 punchcard-generator.py design.png --template --template-machine brother
+```
+
+Template with row numbering for Silverreed:
+
+```bash
+python3 punchcard-generator.py design.png --template a4 --template-machine silverreed
+```
+
+Numbering notes:
+
+- row numbers are omitted unless `--template-machine` is set
+- numbering is bottom-up (row position 1 is at the bottom)
+- shift values:
+	- Brother = 7
+	- Silverreed = 5
+
+Add the same numbering to regular punchcard SVG output:
+
+```bash
+python3 punchcard-generator.py design.png --template-machine brother
+python3 punchcard-generator.py design.png --template-machine silverreed
+```
+
+Letter behavior for long cards:
+
+- if it fits on one Letter page, output one Letter page
+- if it does not fit Letter but fits one Legal page, interactive runs ask whether you want one Legal page or multiple Letter pages
+- if it does not fit one Legal page, it automatically splits to multiple Letter pages
+
+A4 behavior for long cards:
+
+- if it does not fit one A4 page, it automatically splits to multiple A4 pages
+
+## 7) Double-bed jacquard (DBJ)
 
 DBJ requires a converted chart (the row sequence is not a direct 1:1 from a normal chart).
 
@@ -111,6 +171,14 @@ Check your image width: 1 pixel = 1 stitch
 ### "Repeat source width must evenly divide card width"
 
 For 24-stitch cards, image widths like 1, 2, 3, 4, 6, 8, 12, 24 work best.
+
+### "PDF template output requires CairoSVG"
+
+Install the optional dependency:
+
+```bash
+python3 -m pip install cairosvg
+```
 
 ## Next step 🌟
 

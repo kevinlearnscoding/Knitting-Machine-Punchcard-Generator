@@ -17,6 +17,9 @@ This uttility generates SVG files, usable in most diecutting machines, for punch
 - 🧵 Supports 12-stitch and 24-stitch card widths
 - 🔁 Layout modes: `auto`, `motif`, and `repeat`
 - 🪡 Double-bed jacquard conversion mode (`--chart-mode dbj`)
+- 🖨️ Printable punching templates (`--template`) in Letter or A4
+- 📄 Template output as PDF pages
+- 🔢 Optional machine-shifted row numbering on punchcard SVG output (`--template-machine`)
 - 📏 Vertical repeats for longer pattern runs
 - 🧪 Batch processing from shell globs and stdin
 - ⚙️ Threshold and inversion controls for image-to-punch mapping
@@ -44,6 +47,7 @@ For a full beginner walkthrough, see the QuickStart guide: [QUICKSTART.md](QUICK
 
 - Python 3.8+
 - Pillow (`pip install Pillow`)
+- CairoSVG (optional, only for template PDF output: `pip install cairosvg`)
 
 ## 🛠️ Usage
 
@@ -93,6 +97,64 @@ find . -name "*.pcx" | python3 punchcard-generator.py --stitches 24 --layout mot
 - `--threshold 0-255` image threshold (default `255`)
 - `--invert` invert punched and non-punched spaces on the card
 - `--hole-ratio 0-1` hole size ratio (default `0.55`)
+- `--template [letter|a4]` generate printable hand-punch template pages; default paper is `letter`
+- `--template-machine {brother,silverreed}` enable machine-specific shifted row numbering
+
+## 🖨️ Printable Template Mode
+
+Template mode creates line-drawing pages with:
+
+- filled black circles for punched holes
+- light alignment grid
+- optional row numbers (enabled only when `--template-machine` is set)
+- PDF output files
+
+Use Letter (default):
+
+```bash
+python3 punchcard-generator.py design.png --template
+```
+
+Explicit A4 template pages:
+
+```bash
+python3 punchcard-generator.py design.png --template a4
+```
+
+Template output is PDF-only (requires CairoSVG).
+
+Template with machine-specific row numbering:
+
+```bash
+python3 punchcard-generator.py design.png --template --template-machine brother
+python3 punchcard-generator.py design.png --template a4 --template-machine silverreed
+```
+
+Numbering behavior:
+
+- numbering is hidden unless `--template-machine` is provided
+- numbering is calculated from bottom to top (bottom row is row position 1)
+- machine shift is then applied to the displayed labels:
+	- `brother`: 7-row shift
+	- `silverreed`: 5-row shift
+
+Standard punchcard SVG output can also include this numbering when machine type is provided:
+
+```bash
+python3 punchcard-generator.py design.png --template-machine brother
+python3 punchcard-generator.py design.png --template-machine silverreed
+```
+
+Paper behavior:
+
+- `--template` (Letter flow):
+	- if it fits one Letter page, output single Letter page
+	- if it does not fit Letter but fits one Legal page, interactive runs prompt for single Legal vs multiple Letter
+	- if it does not fit one Legal page, output multiple Letter pages
+	- non-interactive runs default to multiple Letter pages in the Legal-eligible branch
+- `--template a4`:
+	- if it fits one A4 page, output single A4 page
+	- otherwise output multiple A4 pages
 
 ## 🧵 Double-Bed Jacquard (DBJ)
 
