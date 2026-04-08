@@ -16,6 +16,7 @@ This uttility generates SVG files, usable in most diecutting machines, for punch
 - 🎯 Generate SVG cut files for punchcards from PNG or PCX images
 - 🧵 Supports 12-stitch and 24-stitch card widths
 - 🔁 Layout modes: `auto`, `motif`, and `repeat`
+- 🪡 Double-bed jacquard conversion mode (`--chart-mode dbj`)
 - 📏 Vertical repeats for longer pattern runs
 - 🧪 Batch processing from shell globs and stdin
 - ⚙️ Threshold and inversion controls for image-to-punch mapping
@@ -87,9 +88,34 @@ find . -name "*.pcx" | python3 punchcard-generator.py --stitches 24 --layout mot
 - `--stitches {12,24}` card width (default `24`)
 - `--layout {auto,motif,repeat}` layout mode (default `auto`)
 - `--repeat-height N` vertical repeats (default `1`)
+- `--chart-mode {normal,dbj}` chart conversion mode (default `normal`)
+- `--dbj-start-color {background,foreground}` first knitted row color in DBJ mode (default `background`)
 - `--threshold 0-255` image threshold (default `255`)
 - `--invert` invert punched and non-punched spaces on the card
 - `--hole-ratio 0-1` hole size ratio (default `0.55`)
+
+## 🧵 Double-Bed Jacquard (DBJ)
+
+When using DBJ, the chart needs to be converted from a standard chart. 
+
+With `--chart-mode dbj`, this tool extends the chart to compensate for the two passes of the carraige between color changes:
+
+- process rows bottom-up
+- output two punch rows for each source row
+- alternate pair ordering by row parity
+- flip result back to top-down order
+
+Example:
+
+```bash
+python3 punchcard-generator.py design.png --chart-mode dbj --dbj-start-color background
+```
+
+If your setup starts with foreground first:
+
+```bash
+python3 punchcard-generator.py design.png --chart-mode dbj --dbj-start-color foreground
+```
 
 ## 🧠 Layout Tips
 

@@ -89,6 +89,48 @@ def build_punch_rows(img, threshold=255, invert=False):
     return rows, width, height
 
 
+def invert_row(row):
+    return "".join("-" if ch == "x" else "x" for ch in row)
+
+
+def apply_double_bed_jacquard_chart(rows, start_color="background"):
+    """
+    Convert a standard 2-color chart into DBJ punch selection rows.
+
+    - process rows bottom-up
+    - alternate pair order by parity
+    - emit two rows for each input row
+    - flip stack back to top-down for output
+    """
+    if start_color not in ("background", "foreground"):
+        raise ValueError("DBJ start color must be 'background' or 'foreground'")
+
+    bottom_up_rows = rows[::-1]
+    final_stack = []
+
+    for i, row in enumerate(bottom_up_rows):
+        row_num = i + 1
+        inverted = invert_row(row)
+        odd_row = row_num % 2 != 0
+
+        if start_color == "background":
+            if odd_row:
+                final_stack.append(row)
+                final_stack.append(inverted)
+            else:
+                final_stack.append(inverted)
+                final_stack.append(row)
+        else:
+            if odd_row:
+                final_stack.append(inverted)
+                final_stack.append(row)
+            else:
+                final_stack.append(row)
+                final_stack.append(inverted)
+
+    return final_stack[::-1]
+
+
 def write_punch_text(path, rows):
     with open(path, "w", encoding="utf-8") as handle:
         handle.write("\n".join(rows))
@@ -326,9 +368,14 @@ def generate_punchcard(
     card_stitches=None,
     card_layout="auto",
     card_repeat_height=1,
+    chart_mode="normal",
+    dbj_start_color="background",
 ):
     img = open_flattened_rgb_image(input_path)
     rows, width_cells, height_cells = build_punch_rows(img, threshold=threshold, invert=invert)
+
+    if chart_mode == "dbj":
+        rows = apply_double_bed_jacquard_chart(rows, start_color=dbj_start_color)
 
     if card_stitches is None:
         card_stitches = 24
@@ -389,6 +436,8 @@ def process_file(
     stitches=24,
     layout="auto",
     repeat_height=1,
+    chart_mode="normal",
+    dbj_start_color="background",
 ):
     input_path = input_path.strip()
     if not input_path or not os.path.exists(input_path):
@@ -416,6 +465,8 @@ def process_file(
             card_stitches=stitches,
             card_layout=layout,
             card_repeat_height=repeat_height,
+            chart_mode=chart_mode,
+            dbj_start_color=dbj_start_color,
         )
     except Exception as e:
         print(f"Error on {input_path}: {e}", file=sys.stderr)
@@ -482,6 +533,18 @@ if __name__ == "__main__":
         type=int,
         default=1,
         help="Number of vertical repeats for card pattern. Default: 1.",
+    )
+    parser.add_argument(
+        "--chart-mode",
+        choices=["normal", "dbj"],
+        default="normal",
+        help="Chart conversion mode. normal keeps rows unchanged; dbj applies double-bed jacquard conversion.",
+    )
+    parser.add_argument(
+        "--dbj-start-color",
+        choices=["background", "foreground"],
+        default="background",
+        help="When --chart-mode dbj is used, first knitted row color. Default: background.",
     )
     parser.add_argument("-help", action="help", help="Show this help message and exit.")
 
@@ -561,6 +624,8 @@ if __name__ == "__main__":
                 stitches=stitches,
                 layout=layout,
                 repeat_height=repeat_height,
+                chart_mode=args.chart_mode,
+                dbj_start_color=args.dbj_start_color,
             )
 
     # 2. Process files passed via pipe (e.g., find . -name '*.pcx' | punchcard)
@@ -579,6 +644,8 @@ if __name__ == "__main__":
                 stitches=stitches,
                 layout=layout,
                 repeat_height=repeat_height,
+                chart_mode=args.chart_mode,
+                dbj_start_color=args.dbj_start_color,
             )
 
     # 3. If no input was provided via either method, show the help

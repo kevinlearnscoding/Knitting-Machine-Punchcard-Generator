@@ -78,6 +78,24 @@ find . -name "*.pcx" | python3 punchcard-generator.py --stitches 24 --layout mot
 - `-d ./output` preserve subfolder structure in output folder
 - `--threshold 220` change punch sensitivity
 - `--invert` invert pixel-to-punch behavior
+- `--chart-mode dbj` convert a normal chart to double-bed jacquard format
+- `--dbj-start-color foreground` set first knitted row color for DBJ
+
+## 6) Double-bed jacquard (DBJ)
+
+DBJ requires a converted chart (the row sequence is not a direct 1:1 from a normal chart).
+
+Use built-in conversion:
+
+```bash
+python3 punchcard-generator.py design.png --chart-mode dbj
+```
+
+Set first knitted row color if needed:
+
+```bash
+python3 punchcard-generator.py design.png --chart-mode dbj --dbj-start-color foreground
+```
 
 ## Troubleshooting 🔧
 

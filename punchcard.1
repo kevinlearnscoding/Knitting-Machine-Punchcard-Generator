@@ -12,6 +12,8 @@
 .Op Cm --stitches Ar 12|24
 .Op Cm --layout Ar auto|motif|repeat
 .Op Cm --repeat-height Ar n
+.Op Cm --chart-mode Ar normal|dbj
+.Op Cm --dbj-start-color Ar background|foreground
 .Op Cm --threshold Ar 0-255
 .Op Cm --invert
 .Op Cm --hole-ratio Ar 0-1
@@ -37,6 +39,10 @@ tiles across card width, and
 .Dq auto
 chooses between them from width compatibility.
 .Pp
+Chart mode
+.Dq dbj
+applies double-bed jacquard conversion (rows are transformed before card layout).
+.Pp
 Positional arguments are interpreted as:
 .Bl -tag -width Ds
 .It Ar input
@@ -60,6 +66,10 @@ Card width in stitches. Default is 24.
 Card layout mode. Default is auto.
 .It Cm --repeat-height Ar n
 Vertical repeat count. Must be >= 1. Default is 1.
+.It Cm --chart-mode Ar normal|dbj
+Chart conversion mode. Default is normal.
+.It Cm --dbj-start-color Ar background|foreground
+First knitted row color when chart mode is dbj. Default is background.
 .It Cm --threshold Ar 0-255
 Pixels below threshold are treated as punch holes.
 Default is 255.
