@@ -262,6 +262,7 @@ def write_brother_style_svg(
     hole_ratio=0.55,
     machine_type=None,
     indexing_hole_diameter=None,
+    clip_hole_mode="full",
 ):
     if not rows:
         raise ValueError("No card rows to render")
@@ -322,21 +323,45 @@ def write_brother_style_svg(
         f'  <polygon points="{points_attr}" fill="white" stroke="black" stroke-width="0.1"/>'
     )
 
-    def add_side_holes(xoffset, yoffset, diameter):
-        left_x = xoffset
-        right_x = card_width - xoffset
+    def build_side_hole_positions(yoffset):
+        positions = []
         y = yoffset
         while y <= card_height:
-            radius = diameter / 2.0
+            positions.append(y)
+            y += row_height
+            if y >= card_height and not half_hole_at_bottom:
+                break
+        return positions
+
+    def add_side_holes(xoffset, yoffset, diameter, mode="full"):
+        left_x = xoffset
+        right_x = card_width - xoffset
+        positions = build_side_hole_positions(yoffset)
+
+        if mode == "sparse-ends":
+            keep_positions = []
+            if positions:
+                keep_positions.append(positions[0])
+            if len(positions) >= 3:
+                keep_positions.append(positions[2])
+                keep_positions.append(positions[-3])
+            if positions:
+                keep_positions.append(positions[-1])
+
+            # Preserve order while de-duplicating in case the card is very short.
+            seen = set()
+            positions = [y for y in keep_positions if not (y in seen or seen.add(y))]
+        elif mode != "full":
+            raise ValueError(f"Unsupported clip hole mode '{mode}'")
+
+        radius = diameter / 2.0
+        for y in positions:
             parts.append(
                 f'  <circle cx="{left_x}" cy="{y}" r="{radius}" fill="white" stroke="black" stroke-width="0.1"/>'
             )
             parts.append(
                 f'  <circle cx="{right_x}" cy="{y}" r="{radius}" fill="white" stroke="black" stroke-width="0.1"/>'
             )
-            y += row_height
-            if y >= card_height and not half_hole_at_bottom:
-                break
 
     def add_pattern_row(row_text, y, row_number=None):
         x = pattern_hole_xoffset
@@ -371,7 +396,7 @@ def write_brother_style_svg(
             x += stitch_width
         y += row_height
 
-    add_side_holes(clip_hole_xoffset, clip_hole_yoffset, clip_hole_diameter)
+    add_side_holes(clip_hole_xoffset, clip_hole_yoffset, clip_hole_diameter, mode=clip_hole_mode)
     add_side_holes(tractor_hole_xoffset, tractor_hole_yoffset, tractor_hole_diameter)
 
     # Main pattern rows
@@ -714,6 +739,7 @@ def generate_punchcard(
                 card_stitches=card_stitches,
                 hole_ratio=hole_ratio,
                 machine_type=template_machine,
+                clip_hole_mode="sparse-ends",
             )
         else:
             write_punch_svg(
@@ -789,6 +815,7 @@ def generate_blank_punchcard(
             hole_ratio=hole_ratio,
             machine_type=template_machine,
             indexing_hole_diameter=indexing_hole_diameter,
+            clip_hole_mode="full",
         )
         print(f"Created: {svg_path}")
 
