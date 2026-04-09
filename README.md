@@ -131,6 +131,7 @@ find . -name "*.pcx" | python3 punchcard-generator.py --stitches 24 --layout mot
 - `--hole-ratio 0-1` hole size ratio (default `0.55`)
 - `--template [letter|a4]` generate printable hand-punch template pages; default paper is `letter`
 - `--machine` / `--template-machine {brother,silverreed}` enable machine-specific shifted row numbering
+- `--arrow [TEXT]` SVG only; draw the right-side arrow marker and optionally place TEXT inside it
 - `--blank` generate a blank 24-stitch card
 - `--omit-indexing` blank mode only; remove tiny indexing holes from stitch positions
 
@@ -190,18 +191,22 @@ python3 punchcard-generator.py design.png --template a4 --template-machine silve
 Numbering behavior:
 
 - numbering is hidden unless `--machine` or `--template-machine` is provided
-- numbering is calculated from bottom to top (bottom row is row position 1)
-- machine shift is then applied to the displayed labels:
-	- `brother`: 7-row shift
-	- `silverreed`: 5-row shift
+- numbering mimics the numbering you see on pre-punched cards that come with your machine, and is specific to that style of machine (Brother or Silver Reed)
 
-Standard punchcard SVG output can also include this numbering when machine type is provided:
+Standard punchcard SVG output can also include machine-specific numbering when machine type is provided:
 
 ```bash
 python3 punchcard-generator.py design.png --machine brother
 python3 punchcard-generator.py design.png --machine silverreed
 python3 punchcard-generator.py design.png brother
 python3 punchcard-generator.py design.png silverreed
+```
+
+You can also add the right-side arrow marker in SVG output:
+
+```bash
+python3 punchcard-generator.py design.png --arrow
+python3 punchcard-generator.py design.png --arrow "Purl side"
 ```
 
 Paper behavior:

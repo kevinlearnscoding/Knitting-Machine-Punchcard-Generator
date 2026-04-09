@@ -26,7 +26,7 @@ cd path/to/your/knitting/charts
 
 If you installed the punchcard command:
 ```bash
-punchcard knittingchart.pcx 24 repeat 4
+punchcard knittingchart.pcx brother 24 repeat 4
 ```
 **or**
 
@@ -38,6 +38,7 @@ python3 punchcard-generator.py design.png 24 motif 6
 What this means:
 
 - `design.png` = your source image
+- 'brother' = brother/knitking numbering (different from silverreed/singer)
 - `24` = 24-stitch card width
 - `motif` = center the design on the card
 - `6` = repeat vertically 6 times
@@ -130,15 +131,22 @@ python3 punchcard-generator.py design.png --template a4 --template-machine silve
 
 Numbering notes:
 
-- row numbers are omitted unless the machine type is set" 'brother' or 'silverreed'
+- row numbers are omitted unless machine type is set to 'brother' or 'silverreed'
 - numbering is bottom-up (row position 1 is at the bottom)
-- numbers are shifted upwards to compensate for the punchcard reader: 7 rows for Brother, 5 rows for Silverreed
+- numbers are shifted upwards to compensate for the punchcard reader: 5 rows for Brother, 3 rows for Silverreed
 
-Add the same numbering to regular punchcard SVG output:
+Add machine-specific numbering to regular punchcard SVG output:
 
 ```bash
 python3 punchcard-generator.py design.png brother
 python3 punchcard-generator.py design.png silverreed
+```
+
+Add the right-side arrow marker in SVG output, with optional text:
+
+```bash
+python3 punchcard-generator.py design.png --arrow
+python3 punchcard-generator.py design.png --arrow "My note"
 ```
 
 How long cards are handled over multiple US-sized pages:
