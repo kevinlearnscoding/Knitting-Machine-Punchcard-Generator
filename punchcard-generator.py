@@ -106,7 +106,7 @@ def open_flattened_rgb_image(input_path):
         return img.convert("RGB")
 
 
-def build_punch_rows(img, threshold=255, invert=False):
+def build_punch_rows(img, threshold=254, invert=False):
     gray = img.convert("L")
     width, height = gray.size
     rows = []
