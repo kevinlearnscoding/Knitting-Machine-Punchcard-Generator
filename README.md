@@ -23,6 +23,7 @@ This utility generates SVG files, usable in most diecutting machines, for punchc
 - 📏 Vertical repeats for longer pattern runs
 - 🧪 Batch processing from shell globs and stdin
 - ⚙️ Threshold and inversion controls for image-to-punch mapping
+- 🗂️ Blank card mode with optional tiny indexing holes (`blank`, `--blank-rows`, `--omit-indexing`)
 
 ## 🚀 Quick Start
 
@@ -130,6 +131,26 @@ find . -name "*.pcx" | python3 punchcard-generator.py --stitches 24 --layout mot
 - `--hole-ratio 0-1` hole size ratio (default `0.55`)
 - `--template [letter|a4]` generate printable hand-punch template pages; default paper is `letter`
 - `--machine` / `--template-machine {brother,silverreed}` enable machine-specific shifted row numbering
+- `--blank` generate a blank 24-stitch card
+- `--omit-indexing` blank mode only; remove tiny indexing holes from stitch positions
+
+## 🗂️ Blank Card Mode
+
+Use `--blank` (instead of an image path) to create a blank 24-stitch card.
+
+- default row count: maximum rows that fit one US Letter page
+- custom row count: pass a value to `--blank` (example: `--blank 60`)
+- indexing holes: enabled by default as tiny ~0.9mm stitch-position holes
+- omit indexing holes: add `--omit-indexing` (only valid in `--blank` mode)
+
+Examples:
+
+```bash
+python3 punchcard-generator.py --blank
+python3 punchcard-generator.py --blank 60
+python3 punchcard-generator.py --blank --omit-indexing
+python3 punchcard-generator.py --blank --template
+```
 
 ## 🖨️ Printable Template Mode
 

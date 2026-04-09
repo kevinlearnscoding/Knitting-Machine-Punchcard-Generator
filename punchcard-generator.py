@@ -73,6 +73,8 @@ TEMPLATE_MACHINE_ROW_SHIFT = {
     "silverreed": 5,
 }
 
+BLANK_INDEXING_HOLE_DIAMETER_MM = 0.9
+
 def determine_output_base(root_path, output_dir=None, recreate_dirs=None):
     if recreate_dirs:
         rel_path = os.path.relpath(root_path)
@@ -259,6 +261,7 @@ def write_brother_style_svg(
     card_stitches,
     hole_ratio=0.55,
     machine_type=None,
+    indexing_hole_diameter=None,
 ):
     if not rows:
         raise ValueError("No card rows to render")
@@ -340,6 +343,11 @@ def write_brother_style_svg(
         for ch in row_text:
             if ch == "x":
                 radius = pattern_hole_diameter / 2.0
+                parts.append(
+                    f'  <circle cx="{x}" cy="{y}" r="{radius}" fill="white" stroke="black" stroke-width="0.1"/>'
+                )
+            elif indexing_hole_diameter is not None:
+                radius = indexing_hole_diameter / 2.0
                 parts.append(
                     f'  <circle cx="{x}" cy="{y}" r="{radius}" fill="white" stroke="black" stroke-width="0.1"/>'
                 )
@@ -723,6 +731,70 @@ def generate_punchcard(
         print(f"Card layout: {layout_used}, width: {card_stitches}, rows: {len(output_rows)}")
 
 
+def calculate_blank_rows_for_paper(card_stitches, paper_size="letter"):
+    if paper_size not in PAPER_SIZES_MM:
+        raise ValueError(f"Unsupported paper size '{paper_size}'")
+
+    config = BROTHER_CARD_PROFILES.get(card_stitches)
+    if config is None:
+        raise ValueError(f"Unsupported stitch width for blank card mode: {card_stitches}")
+
+    _, paper_height = PAPER_SIZES_MM[paper_size]
+    pattern_hole_yoffset = config["pattern_hole_yoffset"]
+    row_height = config["row_height"]
+
+    # Card height = 2*y_offset + (rows-1)*row_height
+    max_rows = int(((paper_height - (2.0 * pattern_hole_yoffset)) / row_height) + 1)
+    return max(1, max_rows)
+
+
+def generate_blank_punchcard(
+    output_base,
+    row_count,
+    output_mode="svg",
+    hole_ratio=0.55,
+    template_size=None,
+    template_machine=None,
+    include_indexing=True,
+):
+    if row_count < 1:
+        raise ValueError("Blank row count must be at least 1")
+
+    rows = ["-" * 24 for _ in range(row_count)]
+
+    if output_mode == "template":
+        write_template_output(
+            output_base=output_base,
+            rows=rows,
+            card_stitches=24,
+            template_size=template_size or "letter",
+            template_machine=template_machine,
+            hole_ratio=hole_ratio,
+        )
+        print(f"Blank card: width: 24, rows: {len(rows)}")
+        return
+
+    if output_mode in ("text", "both"):
+        txt_path = output_base + ".punch.txt"
+        write_punch_text(txt_path, rows)
+        print(f"Created: {txt_path}")
+
+    if output_mode in ("svg", "both"):
+        svg_path = output_base + ".punch.svg"
+        indexing_hole_diameter = BLANK_INDEXING_HOLE_DIAMETER_MM if include_indexing else None
+        write_brother_style_svg(
+            svg_path,
+            rows,
+            card_stitches=24,
+            hole_ratio=hole_ratio,
+            machine_type=template_machine,
+            indexing_hole_diameter=indexing_hole_diameter,
+        )
+        print(f"Created: {svg_path}")
+
+    print(f"Blank card: width: 24, rows: {len(rows)}, indexing: {'on' if include_indexing else 'off'}")
+
+
 def process_file(
     input_path,
     output_dir=None,
@@ -790,11 +862,17 @@ def parse_shorthand_tokens(tokens):
         "template_requested": False,
         "template_size": None,
         "template_machine": None,
+        "blank_requested": False,
     }
 
     for token in tokens:
         lowered = token.lower()
         ext = os.path.splitext(token)[1].lower()
+
+        # Positional 'blank' is intentionally unsupported; use --blank.
+        if lowered == "blank":
+            unknown_tokens.append("blank")
+            continue
 
         # Preserve common file-like tokens first to avoid false shorthand matches.
         if ext in (".pcx", ".png") or os.path.sep in token or os.path.exists(token):
@@ -931,6 +1009,22 @@ if __name__ == "__main__":
         default="background",
         help="When --chart-mode dbj is used, first knitted row color. Default: background.",
     )
+    parser.add_argument(
+        "--blank",
+        nargs="?",
+        const=-1,
+        default=None,
+        type=int,
+        metavar="ROWS",
+        help="Generate a blank 24-stitch punch card. Optional ROWS value sets row count (e.g. --blank 35).",
+    )
+    parser.add_argument(
+        "--omit-index",
+        "--omit-indexing",
+        dest="omit_indexing",
+        action="store_true",
+        help="Blank mode only: omit tiny indexing holes in stitch positions.",
+    )
     parser.add_argument("-help", action="help", help="Show this help message and exit.")
 
     parser.add_argument(
@@ -956,9 +1050,14 @@ if __name__ == "__main__":
     if args.repeat_height < 1:
         parser.error("--repeat-height must be at least 1")
 
+    if args.blank is not None and args.blank != -1 and args.blank < 1:
+        parser.error("--blank ROWS must be at least 1")
+
     input_files, shorthand, unknown_tokens = parse_shorthand_tokens(args.inputs)
 
     if unknown_tokens:
+        if len(unknown_tokens) == 1 and unknown_tokens[0] == "blank":
+            parser.error("Positional 'blank' is no longer supported. Use --blank instead.")
         parser.error(
             "Unrecognized shorthand token(s): "
             + ", ".join(unknown_tokens)
@@ -980,6 +1079,7 @@ if __name__ == "__main__":
         template_size = shorthand["template_size"] or "letter"
 
     template_machine = args.machine_type if args.machine_type is not None else shorthand["template_machine"]
+    blank_requested = args.blank is not None
 
     if template_size is not None:
         output_mode = "template"
@@ -991,13 +1091,39 @@ if __name__ == "__main__":
     if template_machine is not None and output_mode == "text":
         parser.error("Machine numbering requires SVG output (svg, both, or template mode)")
 
+    if blank_requested and input_files:
+        parser.error("Use either image input file(s) or blank mode (--blank), not both")
+
+    if args.omit_indexing and input_files:
+        parser.error("--omit-index/--omit-indexing cannot be combined with image input file(s)")
+
+    if args.omit_indexing and not blank_requested:
+        parser.error("--omit-index/--omit-indexing is only valid when using blank card mode (--blank)")
+
     if repeat_height < 1:
         parser.error("repeat height must be at least 1")
 
     if not input_files and args.inputs and sys.stdin.isatty():
         parser.error("No input files provided")
 
-    # 1. Process direct input files (e.g., punchcard *.pcx 24 motif 6)
+    # 1. Blank mode (e.g., punchcard --blank 60)
+    if blank_requested:
+        blank_rows = args.blank if args.blank != -1 else None
+        if blank_rows is None:
+            blank_rows = calculate_blank_rows_for_paper(24, paper_size="letter")
+
+        output_base = determine_output_base("blank", args.o, args.d)
+        generate_blank_punchcard(
+            output_base=output_base,
+            row_count=blank_rows,
+            output_mode=output_mode,
+            hole_ratio=args.hole_ratio,
+            template_size=template_size,
+            template_machine=template_machine,
+            include_indexing=not args.omit_indexing,
+        )
+
+    # 2. Process direct input files (e.g., punchcard *.pcx 24 motif 6)
     if input_files:
         for input_file in input_files:
             process_file(
@@ -1019,8 +1145,8 @@ if __name__ == "__main__":
                 template_machine=template_machine,
             )
 
-    # 2. Process files passed via pipe (e.g., find . -name '*.pcx' | punchcard)
-    if not sys.stdin.isatty():
+    # 3. Process files passed via pipe (e.g., find . -name '*.pcx' | punchcard)
+    if not blank_requested and not sys.stdin.isatty():
         for line in sys.stdin:
             process_file(
                 line,
@@ -1041,7 +1167,7 @@ if __name__ == "__main__":
                 template_machine=template_machine,
             )
 
-    # 3. If no input was provided via either method, show the help
-    if not input_files and sys.stdin.isatty():
+    # 4. If no input was provided via either method, show the help
+    if not blank_requested and not input_files and sys.stdin.isatty():
         parser.print_help()
 

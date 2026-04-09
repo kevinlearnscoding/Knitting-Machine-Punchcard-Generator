@@ -14,6 +14,8 @@
 .Op Cm --repeat-height Ar n
 .Op Cm --chart-mode Ar normal|dbj
 .Op Cm --dbj-start-color Ar background|foreground
+.Op Cm --blank Op Ar rows
+.Op Cm --omit-indexing
 .Op Cm --threshold Ar 0-255
 .Op Cm --invert
 .Op Cm --hole-ratio Ar 0-1
@@ -72,6 +74,15 @@ Vertical repeat count. Must be >= 1. Default is 1.
 Chart conversion mode. Default is normal.
 .It Cm --dbj-start-color Ar background|foreground
 First knitted row color when chart mode is dbj. Default is background.
+.It Cm --blank Op Ar rows
+Generate a blank 24-stitch punch card.
+Optional
+.Ar rows
+sets the row count.
+When omitted, row count defaults to the maximum that fits one US Letter page.
+.It Cm --omit-indexing
+Blank mode only. Omit tiny indexing holes in stitch positions.
+By default, blank mode includes these indexing holes.
 .It Cm --threshold Ar 0-255
 Pixels below threshold are treated as punch holes.
 Default is 255.
@@ -143,6 +154,16 @@ punchcard design.png --template --template-machine brother
 Generate punchcard SVG with brother row numbering:
 .Bd -literal -offset indent
 punchcard design.png --template-machine brother
+.Ed
+.Pp
+Generate a blank 24-stitch punch card with auto row count:
+.Bd -literal -offset indent
+punchcard --blank
+.Ed
+.Pp
+Generate a blank card with explicit row count and no indexing holes:
+.Bd -literal -offset indent
+punchcard --blank 60 --omit-indexing
 .Ed
 .Sh EXIT STATUS
 .Ex -std

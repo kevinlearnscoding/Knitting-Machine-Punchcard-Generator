@@ -79,6 +79,28 @@ find . -name "*.pcx" | python3 punchcard-generator.py --stitches 24 --layout mot
 - `--invert` invert the punchcard, punched becomes solid and solid becomes punched
 - `--chart-mode dbj` convert a normal chart to double-bed jacquard format (2-color designs only)
 - `--dbj-start-color foreground` set first knitted row color for DBJ
+- `--blank` generate a blank 24-stitch card
+- `--omit-indexing` blank mode only; remove tiny indexing holes
+
+### Create a blank punch card
+
+Default blank 24-stitch card (rows auto-fit to one Letter page):
+
+```bash
+python3 punchcard-generator.py --blank
+```
+
+Specify row count:
+
+```bash
+python3 punchcard-generator.py --blank 60
+```
+
+Omit tiny indexing holes:
+
+```bash
+python3 punchcard-generator.py --blank --omit-indexing
+```
 
 ## 6) Printable template output (manual punching)
 
