@@ -14,9 +14,13 @@
 .Op Cm --repeat-height Ar n
 .Op Cm --chart-mode Ar normal|dbj
 .Op Cm --dbj-start-color Ar background|foreground
+.Op Cm --blank Op Ar rows
+.Op Cm --omit-indexing
 .Op Cm --threshold Ar 0-255
 .Op Cm --invert
 .Op Cm --hole-ratio Ar 0-1
+.Op Cm --template Op Ar letter|a4
+.Op Cm --template-machine Ar brother|silverreed
 .Op Cm --cell-size Ar n
 .Op Cm --margin Ar n
 .Ar input ...
@@ -70,6 +74,15 @@ Vertical repeat count. Must be >= 1. Default is 1.
 Chart conversion mode. Default is normal.
 .It Cm --dbj-start-color Ar background|foreground
 First knitted row color when chart mode is dbj. Default is background.
+.It Cm --blank Op Ar rows
+Generate a blank 24-stitch punch card.
+Optional
+.Ar rows
+sets the row count.
+When omitted, row count defaults to the maximum that fits one US Letter page.
+.It Cm --omit-indexing
+Blank mode only. Omit tiny indexing holes in stitch positions.
+By default, blank mode includes these indexing holes.
 .It Cm --threshold Ar 0-255
 Pixels below threshold are treated as punch holes.
 Default is 255.
@@ -78,6 +91,18 @@ Invert punch mapping (bright becomes punch).
 .It Cm --hole-ratio Ar 0-1
 Relative punch-hole diameter for SVG output.
 Default is 0.55.
+.It Cm --template Op Ar letter|a4
+Generate printable hand-punch template pages.
+If size is omitted, letter is used.
+Template output is PDF.
+For letter templates that do not fit on one letter page but fit on one legal page,
+interactive runs prompt for single legal vs multiple letter pages.
+If template size is a4, overlong cards split across multiple a4 pages.
+.It Cm --template-machine Ar brother|silverreed
+Enable machine-specific row numbering on template pages and punchcard SVG output.
+When omitted, row numbers are not rendered.
+Numbering is computed bottom-up and then shifted by machine profile:
+brother uses shift 7, silverreed uses shift 5.
 .It Cm --cell-size Ar n
 Cell size for simple SVG grid rendering.
 Default is 10.
@@ -110,6 +135,36 @@ Batch process with shell glob expansion:
 .Bd -literal -offset indent
 punchcard *.pcx 24 motif 2 -d /path/to/output/dir
 .Ed
+.Pp
+Generate letter template pages:
+.Bd -literal -offset indent
+punchcard design.png --template
+.Ed
+.Pp
+Generate a4 template pages:
+.Bd -literal -offset indent
+punchcard design.png --template a4
+.Ed
+.Pp
+Generate template with brother row numbering:
+.Bd -literal -offset indent
+punchcard design.png --template --template-machine brother
+.Ed
+.Pp
+Generate punchcard SVG with brother row numbering:
+.Bd -literal -offset indent
+punchcard design.png --template-machine brother
+.Ed
+.Pp
+Generate a blank 24-stitch punch card with auto row count:
+.Bd -literal -offset indent
+punchcard --blank
+.Ed
+.Pp
+Generate a blank card with explicit row count and no indexing holes:
+.Bd -literal -offset indent
+punchcard --blank 60 --omit-indexing
+.Ed
 .Sh EXIT STATUS
 .Ex -std
 .Sh DIAGNOSTICS
@@ -129,6 +184,8 @@ Typical messages include:
 .Bl -tag -width Ds
 .It Pa *.punch.svg
 Generated SVG punchcard output.
+.It Pa *.template.pdf
+Generated printable template PDF output.
 .El
 .Sh SEE ALSO
 .Xr python3 1
