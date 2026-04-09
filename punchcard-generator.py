@@ -73,6 +73,11 @@ TEMPLATE_MACHINE_ROW_SHIFT = {
     "silverreed": 5,
 }
 
+SVG_MACHINE_ROW_SHIFT = {
+    "brother": 5,
+    "silverreed": 3,
+}
+
 BLANK_INDEXING_HOLE_DIAMETER_MM = 0.9
 
 def determine_output_base(root_path, output_dir=None, recreate_dirs=None):
@@ -263,6 +268,7 @@ def write_brother_style_svg(
     machine_type=None,
     indexing_hole_diameter=None,
     clip_hole_mode="full",
+    arrow_text=None,
 ):
     if not rows:
         raise ValueError("No card rows to render")
@@ -289,9 +295,52 @@ def write_brother_style_svg(
     overlapping_row_yoffset = config["overlapping_row_yoffset"]
     corner_offset = config["corner_offset"]
     half_hole_at_bottom = config["half_hole_at_bottom"]
-    row_number_shift = TEMPLATE_MACHINE_ROW_SHIFT.get(machine_type)
+    svg_row_number_shift = SVG_MACHINE_ROW_SHIFT.get(machine_type)
 
     card_height = (pattern_hole_yoffset * 2) + ((card_rows - 1) * row_height)
+    svg_width = card_width
+
+    arrow_body_left_x = None
+    arrow_body_right_x = None
+    arrow_center_x = None
+    arrow_body_top_y = None
+    arrow_body_bottom_y = None
+    arrow_tip_y = None
+    arrow_text_y = None
+    arrow_text_length = None
+    if arrow_text is not None:
+        arrow_font_size = 3.2
+        arrow_body_width = 8.0
+        arrow_text_padding = 3.0
+        arrow_margin_x = 1.5
+        arrow_body_right_x = card_width - arrow_margin_x
+        arrow_body_left_x = arrow_body_right_x - arrow_body_width
+
+        tractor_edge_x = tractor_hole_xoffset + (tractor_hole_diameter / 2.0)
+        minimum_left_x = tractor_edge_x + 1.5
+        if arrow_body_left_x < minimum_left_x:
+            arrow_body_left_x = minimum_left_x
+            arrow_body_right_x = arrow_body_left_x + arrow_body_width
+
+        arrow_center_x = (arrow_body_left_x + arrow_body_right_x) / 2.0
+        arrow_head_height = max(8.0, row_height * 1.8)
+        arrow_body_height = max(18.0, (len(arrow_text) * arrow_font_size * 0.75) + 10.0)
+        arrow_total_height = arrow_body_height + arrow_head_height
+        arrow_body_top_y = max(
+            overlapping_row_yoffset + row_height,
+            (card_height - arrow_total_height) / 2.0,
+        )
+        arrow_bottom_limit = card_height - (overlapping_row_yoffset + row_height)
+        if arrow_body_top_y + arrow_total_height > arrow_bottom_limit:
+            arrow_body_top_y = max(
+                overlapping_row_yoffset + row_height,
+                arrow_bottom_limit - arrow_total_height,
+            )
+
+        arrow_body_bottom_y = arrow_body_top_y + arrow_body_height
+        arrow_tip_y = arrow_body_bottom_y + arrow_head_height
+        arrow_text_y = arrow_body_top_y + (arrow_body_height / 2.0)
+        arrow_text_length = max(1.0, arrow_body_height - (arrow_text_padding * 2.0))
 
     corner_diameter = corner_offset + 1
     shape_points = [
@@ -317,8 +366,9 @@ def write_brother_style_svg(
 
     parts = []
     parts.append(
-        f'<svg xmlns="http://www.w3.org/2000/svg" version="1.1" baseProfile="full" width="{card_width}mm" height="{card_height}mm" viewBox="0 0 {card_width} {card_height}" preserveAspectRatio="none">'
+        f'<svg xmlns="http://www.w3.org/2000/svg" version="1.1" baseProfile="full" width="{svg_width}mm" height="{card_height}mm" viewBox="0 0 {svg_width} {card_height}" preserveAspectRatio="none">'
     )
+    parts.append(f'  <rect x="0" y="0" width="{svg_width}" height="{card_height}" fill="white"/>')
     parts.append(
         f'  <polygon points="{points_attr}" fill="white" stroke="black" stroke-width="0.1"/>'
     )
@@ -363,7 +413,7 @@ def write_brother_style_svg(
                 f'  <circle cx="{right_x}" cy="{y}" r="{radius}" fill="white" stroke="black" stroke-width="0.1"/>'
             )
 
-    def add_pattern_row(row_text, y, row_number=None):
+    def add_pattern_row(row_text, y):
         x = pattern_hole_xoffset
         for ch in row_text:
             if ch == "x":
@@ -377,12 +427,6 @@ def write_brother_style_svg(
                     f'  <circle cx="{x}" cy="{y}" r="{radius}" fill="white" stroke="black" stroke-width="0.1"/>'
                 )
             x += stitch_width
-
-        if row_number is not None:
-            label_x = pattern_hole_xoffset - 2.0
-            parts.append(
-                f'  <text x="{label_x}" y="{y}" text-anchor="end" dominant-baseline="middle" font-family="sans-serif" font-size="2.2" fill="#222">{row_number}</text>'
-            )
 
     # Top overlapping rows
     y = overlapping_row_yoffset
@@ -400,14 +444,42 @@ def write_brother_style_svg(
     add_side_holes(tractor_hole_xoffset, tractor_hole_yoffset, tractor_hole_diameter)
 
     # Main pattern rows
+    row_number_label_x = (clip_hole_xoffset + tractor_hole_xoffset) / 2.0
+    row_number_label_y_shift = overlapping_rows * row_height
+    row_one_center_y = None
+    pattern_grid_left_x = pattern_hole_xoffset - (stitch_width / 2.0)
+    pattern_grid_right_x = pattern_hole_xoffset + ((card_stitches - 0.5) * stitch_width)
     y = pattern_hole_yoffset
     for row_index, row in enumerate(rows, start=1):
         row_number = None
-        if row_number_shift is not None:
+        if svg_row_number_shift is not None:
             absolute_row_from_bottom = card_rows - row_index + 1
-            row_number = ((absolute_row_from_bottom - row_number_shift - 1) % card_rows) + 1
-        add_pattern_row(row, y, row_number=row_number)
+            row_number = ((absolute_row_from_bottom - svg_row_number_shift - 1) % card_rows) + 1
+            if row_number == 1:
+                row_one_center_y = y
+        add_pattern_row(row, y)
+        if row_number is not None:
+            # Shift label placement so numbering starts at tractor hole 5.
+            row_label_y = y - row_number_label_y_shift
+            parts.append(
+                f'  <text x="{row_number_label_x}" y="{row_label_y}" text-anchor="middle" dominant-baseline="middle" font-family="Consolas,monospace" font-size="2.4" fill="none" stroke="#00AEEF" stroke-width="0.18">{row_number}</text>'
+            )
         y += row_height
+
+    if row_one_center_y is not None:
+        row_one_marker_y = row_one_center_y - (1.5 * row_height)
+        parts.append(
+            f'  <line x1="{pattern_grid_left_x}" y1="{row_one_marker_y}" x2="{pattern_grid_right_x}" y2="{row_one_marker_y}" stroke="#00AEEF" stroke-width="0.2"/>'
+        )
+
+    if arrow_text is not None:
+        parts.append(
+            f'  <polygon points="{arrow_body_left_x},{arrow_body_top_y} {arrow_body_right_x},{arrow_body_top_y} {arrow_body_right_x},{arrow_body_bottom_y} {arrow_center_x},{arrow_tip_y} {arrow_body_left_x},{arrow_body_bottom_y}" fill="none" stroke="#00AEEF" stroke-width="0.2"/>'
+        )
+        if arrow_text:
+            parts.append(
+                f'  <text x="{arrow_center_x}" y="{arrow_text_y}" transform="rotate(-90 {arrow_center_x} {arrow_text_y})" text-anchor="middle" dominant-baseline="middle" font-family="Liberation Mono,DejaVu Sans Mono,monospace" font-size="3.2" fill="#00AEEF" textLength="{arrow_text_length}" lengthAdjust="spacingAndGlyphs">{arrow_text}</text>'
+            )
 
     # Bottom overlapping rows
     y = card_height - overlapping_row_yoffset
@@ -689,6 +761,7 @@ def generate_punchcard(
     dbj_start_color="background",
     template_size=None,
     template_machine=None,
+    arrow_text=None,
 ):
     img = open_flattened_rgb_image(input_path)
     rows, width_cells, height_cells = build_punch_rows(img, threshold=threshold, invert=invert)
@@ -740,6 +813,7 @@ def generate_punchcard(
                 hole_ratio=hole_ratio,
                 machine_type=template_machine,
                 clip_hole_mode="sparse-ends",
+                arrow_text=arrow_text,
             )
         else:
             write_punch_svg(
@@ -782,6 +856,7 @@ def generate_blank_punchcard(
     template_size=None,
     template_machine=None,
     include_indexing=True,
+    arrow_text=None,
 ):
     if row_count < 1:
         raise ValueError("Blank row count must be at least 1")
@@ -816,6 +891,7 @@ def generate_blank_punchcard(
             machine_type=template_machine,
             indexing_hole_diameter=indexing_hole_diameter,
             clip_hole_mode="full",
+            arrow_text=arrow_text,
         )
         print(f"Created: {svg_path}")
 
@@ -839,6 +915,7 @@ def process_file(
     dbj_start_color="background",
     template_size=None,
     template_machine=None,
+    arrow_text=None,
 ):
     input_path = input_path.strip()
     if not input_path or not os.path.exists(input_path):
@@ -870,6 +947,7 @@ def process_file(
             dbj_start_color=dbj_start_color,
             template_size=template_size,
             template_machine=template_machine,
+            arrow_text=arrow_text,
         )
     except Exception as e:
         print(f"Error on {input_path}: {e}", file=sys.stderr)
@@ -975,6 +1053,14 @@ if __name__ == "__main__":
         dest="machine_type",
         choices=["brother", "silverreed"],
         help="Machine profile for shifted row numbering on SVG or template PDF output.",
+    )
+    parser.add_argument(
+        "--arrow",
+        nargs="?",
+        const="",
+        default=None,
+        metavar="TEXT",
+        help="SVG only: draw the right-side arrow marker; optionally place TEXT inside it.",
     )
     parser.add_argument(
         "--threshold",
@@ -1148,6 +1234,7 @@ if __name__ == "__main__":
             template_size=template_size,
             template_machine=template_machine,
             include_indexing=not args.omit_indexing,
+            arrow_text=args.arrow,
         )
 
     # 2. Process direct input files (e.g., punchcard *.pcx 24 motif 6)
@@ -1170,6 +1257,7 @@ if __name__ == "__main__":
                 dbj_start_color=dbj_start_color,
                 template_size=template_size,
                 template_machine=template_machine,
+                arrow_text=args.arrow,
             )
 
     # 3. Process files passed via pipe (e.g., find . -name '*.pcx' | punchcard)
@@ -1192,6 +1280,7 @@ if __name__ == "__main__":
                 dbj_start_color=dbj_start_color,
                 template_size=template_size,
                 template_machine=template_machine,
+                arrow_text=args.arrow,
             )
 
     # 4. If no input was provided via either method, show the help
