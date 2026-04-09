@@ -911,7 +911,7 @@ if __name__ == "__main__":
         "--layout",
         choices=["auto", "motif", "repeat"],
         default="auto",
-        help="Card layout mode. auto picks motif when width matches; otherwise repeat when width tiles card width.",
+        help="Card layout: Motif centers the design on the card, repeat tiles it across the card, auto picks whichever fits.",
     )
     parser.add_argument(
         "--repeat-height",
@@ -923,7 +923,7 @@ if __name__ == "__main__":
         "--chart-mode",
         choices=["normal", "dbj"],
         default="normal",
-        help="Chart conversion mode. normal keeps rows unchanged; dbj applies double-bed jacquard conversion.",
+        help="Chart conversion mode. normal keeps rows unchanged; dbj applies double-bed jacquard conversion (2-color designs).",
     )
     parser.add_argument(
         "--dbj-start-color",

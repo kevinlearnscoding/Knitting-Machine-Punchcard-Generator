@@ -2,15 +2,15 @@
 
 Welcome! This guide gets you from zero to your first punchcard SVG in a few minutes. 🧶
 
-## 1) Install dependency
+## 1) Install dependencies
 
 Run:
 
 ```bash
-python3 -m pip install Pillow
+python3 -m pip install Pillow && python3 -m pip install cairosvg
 ```
 
-## 2) Install as a terminal (optional)
+## 2) Install as a terminal command (optional)
 
 To install the script as a system command:
 ```bash
@@ -76,41 +76,31 @@ find . -name "*.pcx" | python3 punchcard-generator.py --stitches 24 --layout mot
 
 - `-o ./output` save generated files in a specific folder
 - `-d ./output` preserve subfolder structure in output folder
-- `--threshold 220` change punch sensitivity
-- `--invert` invert pixel-to-punch behavior
-- `--chart-mode dbj` convert a normal chart to double-bed jacquard format
+- `--invert` invert the punchcard, punched becomes solid and solid becomes punched
+- `--chart-mode dbj` convert a normal chart to double-bed jacquard format (2-color designs only)
 - `--dbj-start-color foreground` set first knitted row color for DBJ
-- `--template` generate printable template pages (defaults to Letter)
-- `--template a4` generate printable template pages sized for A4
-- `--template-machine brother|silverreed` enable machine-specific shifted row numbering
 
 ## 6) Printable template output (manual punching)
 
-Letter template (default):
+US Letter sized printable PDF template (default):
 
 ```bash
 python3 punchcard-generator.py design.png --template
 ```
 
-A4 template:
+A4 sized printable PDF template:
 
 ```bash
 python3 punchcard-generator.py design.png --template a4
 ```
 
-Template output is PDF-only (requires CairoSVG):
-
-```bash
-python3 punchcard-generator.py design.png --template
-```
-
-Template with row numbering for Brother:
+Template with row numbering for Brother/Knitking:
 
 ```bash
 python3 punchcard-generator.py design.png --template --template-machine brother
 ```
 
-Template with row numbering for Silverreed:
+Template with row numbering for Silverreed/KnitMaster/Empisal/Singer/Studio/etc:
 
 ```bash
 python3 punchcard-generator.py design.png --template a4 --template-machine silverreed
@@ -118,32 +108,30 @@ python3 punchcard-generator.py design.png --template a4 --template-machine silve
 
 Numbering notes:
 
-- row numbers are omitted unless `--template-machine` is set
+- row numbers are omitted unless the machine type is set" 'brother' or 'silverreed'
 - numbering is bottom-up (row position 1 is at the bottom)
-- shift values:
-	- Brother = 7
-	- Silverreed = 5
+- numbers are shifted upwards to compensate for the punchcard reader: 7 rows for Brother, 5 rows for Silverreed
 
 Add the same numbering to regular punchcard SVG output:
 
 ```bash
-python3 punchcard-generator.py design.png --template-machine brother
-python3 punchcard-generator.py design.png --template-machine silverreed
+python3 punchcard-generator.py design.png brother
+python3 punchcard-generator.py design.png silverreed
 ```
 
-Letter behavior for long cards:
+How long cards are handled over multiple US-sized pages:
 
-- if it fits on one Letter page, output one Letter page
-- if it does not fit Letter but fits one Legal page, interactive runs ask whether you want one Legal page or multiple Letter pages
+- if it fits on one US Letter page, output is one Letter page
+- if it does not fit Letter but fits one US Legal page, the script will ask whether you want one Legal page or multiple Letter pages
 - if it does not fit one Legal page, it automatically splits to multiple Letter pages
 
-A4 behavior for long cards:
+How long cards are handled for A4 pages:
 
 - if it does not fit one A4 page, it automatically splits to multiple A4 pages
 
 ## 7) Double-bed jacquard (DBJ)
 
-DBJ requires a converted chart (the row sequence is not a direct 1:1 from a normal chart).
+the 'DBJ' option automatically converts a 2-color chart into a punchcard to be used as Doulbe-Bed-Jacquard, also called Multicolored Rib
 
 Use built-in conversion:
 
@@ -151,7 +139,7 @@ Use built-in conversion:
 python3 punchcard-generator.py design.png --chart-mode dbj
 ```
 
-Set first knitted row color if needed:
+Invert the colors if needed by setting which color is row 1:
 
 ```bash
 python3 punchcard-generator.py design.png --chart-mode dbj --dbj-start-color foreground
@@ -164,7 +152,6 @@ python3 punchcard-generator.py design.png --chart-mode dbj --dbj-start-color for
 Only `.png` and `.pcx` are accepted.
 
 ### "Motif width is wider than card width"
-
 
 Check your image width: 1 pixel = 1 stitch
 
@@ -180,8 +167,12 @@ Install the optional dependency:
 python3 -m pip install cairosvg
 ```
 
+### DBJ does not look correct: 
+
+Double-bed Jacquard only works on 2-color charts
+
 ## Next step 🌟
 
-After you confirm output looks right, open the `.punch.svg` in your diecutting software and cut
+After you confirm output looks right, open the `.punch.svg` in your diecutting software and cut. If you chose to have numbering in your SVG the numbering will need to be 
 
 

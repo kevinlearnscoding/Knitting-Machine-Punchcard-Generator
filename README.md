@@ -7,35 +7,55 @@ Generate punchcard die-cutting files from PCX and PNG image charts.
 ![Python](https://img.shields.io/badge/Python-Programming-blue?logo=python&logoColor=yellow)
 
 
-This uttility generates SVG files, usable in most diecutting machines, for punchcards for 12-stitch and 24-stitch punch card machines, from PCX and PNG images. A large library of PCX and PNG image charts are available from https://github.com/kevinlearnscoding/Machine-Knitters-Companion 
+This utility generates SVG files, usable in most diecutting machines, for punchcards for 12-stitch and 24-stitch punch card machines, from knitting charts in PCX and PNG image file formats. A large library of PCX and PNG image charts are available from https://github.com/kevinlearnscoding/Machine-Knitters-Companion
 
 ---
 
 ## ✨ Features
 
-- 🎯 Generate SVG cut files for punchcards from PNG or PCX images
+- 🎯 Generate SVG cut files for punchcards from stitch charts in PNG or PCX image format
 - 🧵 Supports 12-stitch and 24-stitch card widths
-- 🔁 Layout modes: `auto`, `motif`, and `repeat`
+- 🔁 Layout modes: `motif` (center the chart on the card), `repeat` (repeat the chart across the chart), and `auto` (default; detects chart width in factors of 12/24 and chooses wether motif or repeat is best)
 - 🪡 Double-bed jacquard conversion mode (`--chart-mode dbj`)
 - 🖨️ Printable punching templates (`--template`) in Letter or A4
 - 📄 Template output as PDF pages
-- 🔢 Optional machine-shifted row numbering on punchcard SVG output (`--template-machine`)
+- 🔢 Optional row numbering on punchcards/templats specific to Brother/Knitking/Toyota or Silver Reed/KnitMaster/Singer/Studio/Empisal/etc output (`--machine` / `--template-machine`)
 - 📏 Vertical repeats for longer pattern runs
 - 🧪 Batch processing from shell globs and stdin
 - ⚙️ Threshold and inversion controls for image-to-punch mapping
 
 ## 🚀 Quick Start
 
-Install python and Pillow dependency
+Install dependencies:
 
 ```bash
-python3 -m pip install Pillow
+python3 -m pip install Pillow && python3 -m pip install cairosvg
 ```
-Determine what kind of punch card machine your using (12-stitch or 24-stich), how many repeats across the width of the card you want, and how many vertical repeats you want the card. Format your input as: 
+
+Optional: install as a terminal command:
+
+```bash
+cp punchcard-generator.py /usr/local/bin/punchcard
+```
+
+Generate your first punchcard (installed command):
+
+```bash
+punchcard knittingchart.pcx 24 repeat 4
+```
+
+Or run as a script:
 
 ```bash
 python3 punchcard-generator.py design.png 24 motif 6
-````
+```
+
+Meaning of arguments:
+
+- `design.png` input image
+- `24` card width in stitches
+- `motif` layout mode
+- `6` vertical repeats
 
 Output file:
 
@@ -71,6 +91,16 @@ python3 punchcard-generator.py tile.png 12 repeat 4
 python3 punchcard-generator.py design.png 24 auto 1
 ```
 
+Free-order shorthand tokens are also supported in the same command, including:
+
+- stitches: `12`, `24`
+- layout: `auto`, `motif`, `repeat`
+- chart mode: `normal`, `dbj`
+- DBJ start color: `background`, `foreground`
+- output mode: `svg`, `text`, `both`
+- template tokens: `template`, `letter`, `a4`
+- machine tokens: `brother`, `silverreed`
+
 ### Batch examples
 
 Shell glob batch:
@@ -89,6 +119,7 @@ find . -name "*.pcx" | python3 punchcard-generator.py --stitches 24 --layout mot
 
 - `-o OUTPUT_PATH` output directory
 - `-d RECREATE_DIRECTORIES` recreate input directory structure in destination
+- `--format {svg,text,both}` output file type (default `svg`)
 - `--stitches {12,24}` card width (default `24`)
 - `--layout {auto,motif,repeat}` layout mode (default `auto`)
 - `--repeat-height N` vertical repeats (default `1`)
@@ -98,7 +129,7 @@ find . -name "*.pcx" | python3 punchcard-generator.py --stitches 24 --layout mot
 - `--invert` invert punched and non-punched spaces on the card
 - `--hole-ratio 0-1` hole size ratio (default `0.55`)
 - `--template [letter|a4]` generate printable hand-punch template pages; default paper is `letter`
-- `--template-machine {brother,silverreed}` enable machine-specific shifted row numbering
+- `--machine` / `--template-machine {brother,silverreed}` enable machine-specific shifted row numbering
 
 ## 🖨️ Printable Template Mode
 
@@ -106,8 +137,13 @@ Template mode creates line-drawing pages with:
 
 - filled black circles for punched holes
 - light alignment grid
-- optional row numbers (enabled only when `--template-machine` is set)
+- optional row numbers (enabled only when `--machine` / `--template-machine` is set)
 - PDF output files
+
+Output naming:
+
+- single page: `name.template.pdf`
+- multiple pages: `name.template-p1.pdf`, `name.template-p2.pdf`, ...
 
 Use Letter (default):
 
@@ -132,7 +168,7 @@ python3 punchcard-generator.py design.png --template a4 --template-machine silve
 
 Numbering behavior:
 
-- numbering is hidden unless `--template-machine` is provided
+- numbering is hidden unless `--machine` or `--template-machine` is provided
 - numbering is calculated from bottom to top (bottom row is row position 1)
 - machine shift is then applied to the displayed labels:
 	- `brother`: 7-row shift
@@ -141,8 +177,10 @@ Numbering behavior:
 Standard punchcard SVG output can also include this numbering when machine type is provided:
 
 ```bash
-python3 punchcard-generator.py design.png --template-machine brother
-python3 punchcard-generator.py design.png --template-machine silverreed
+python3 punchcard-generator.py design.png --machine brother
+python3 punchcard-generator.py design.png --machine silverreed
+python3 punchcard-generator.py design.png brother
+python3 punchcard-generator.py design.png silverreed
 ```
 
 Paper behavior:
@@ -160,7 +198,7 @@ Paper behavior:
 
 When using DBJ, the chart needs to be converted from a standard chart. 
 
-With `--chart-mode dbj`, this tool extends the chart to compensate for the two passes of the carraige between color changes:
+With `--chart-mode dbj`, this tool extends the chart to compensate for the two passes of the carriage between color changes:
 
 - process rows bottom-up
 - output two punch rows for each source row
